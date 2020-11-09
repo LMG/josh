@@ -939,6 +939,16 @@ dependencies = [
 [[package]]
 name = "hyper_cgi"
 version = "0.1.2"
+dependencies = [
+ "futures 0.3.7",
+ "hyper 0.13.8",
+ "tokio 0.2.22",
+ "tokio-util",
+]
+
+[[package]]
+name = "hyper_cgi"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4831df2c2a3d9487bde1c3bf11797eebf2a3027c33f8bc5058a3f988327347bf"
 dependencies = [
@@ -1074,7 +1084,7 @@ dependencies = [
  "futures 0.3.7",
  "git2",
  "hyper 0.13.8",
- "hyper_cgi",
+ "hyper_cgi 0.1.2",
  "josh",
  "lazy_static",
  "regex",
@@ -1104,7 +1114,7 @@ dependencies = [
  "clap",
  "futures 0.3.7",
  "hyper 0.13.8",
- "hyper_cgi",
+ "hyper_cgi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime",
  "tokio 0.2.22",
  "tokio-io",

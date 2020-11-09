@@ -44,6 +44,7 @@ struct JoshProxyService {
 pub fn parse_auth(
     req: &hyper::Request<hyper::Body>,
 ) -> Option<(String, String)> {
+    println!("parse auth");
     let line = josh::some_or!(
         req.headers()
             .get("authorization")
@@ -52,20 +53,26 @@ pub fn parse_auth(
             return None;
         }
     );
+    println!("line ok");
     let u = josh::ok_or!(String::from_utf8(line[6..].to_vec()), {
         return None;
     });
+    println!("u {:#?}", u);
     let decoded = josh::ok_or!(base64::decode(&u), {
         return None;
     });
+    println!("decoded ok");
     let s = josh::ok_or!(String::from_utf8(decoded), {
         return None;
     });
+    println!("s {}", s);
     if let [username, password] =
         s.as_str().split(':').collect::<Vec<_>>().as_slice()
     {
+        println!("u/p {}, {}", username, password);
         return Some((username.to_string(), password.to_string()));
     }
+    println!("no let user name password");
     return None;
 }
 
@@ -293,12 +300,16 @@ async fn call_service(
         }
         path
     };
+    
+    println!("got path {}", &path);
 
     if let Some(r) = static_paths(&serv, &path).await {
+        println!("static path returned some r");
         return r;
     }
 
     if path == "/repo_update" {
+        println!("update the repo");
         return repo_update_fn(serv, req).await;
     }
 
@@ -320,10 +331,13 @@ async fn call_service(
                 .unwrap();
         }
     };
+    println!("url is parsed");
 
     let headref = parsed_url.headref.trim_start_matches("@").to_owned();
+    println!("headref is '{}'", &headref);
 
     if parsed_url.ending == "json" {
+        println!("json url");
         let forward_maps = serv.forward_maps.clone();
         let backward_maps = serv.forward_maps.clone();
 
@@ -354,14 +368,17 @@ async fn call_service(
             .status(hyper::StatusCode::UNAUTHORIZED);
         return builder.body(hyper::Body::empty()).unwrap();
     });
+    println!("Username {}, password {}", username, password);
 
     let port = serv.port.clone();
+    println!("Port {:?}", port);
 
     let remote_url = [
         serv.upstream_url.as_str(),
         parsed_url.upstream_repo.as_str(),
     ]
     .join("");
+    println!("remote url {:?}", remote_url);
 
     let br_url = remote_url.clone();
     let base_ns = josh::to_ns(&parsed_url.upstream_repo);
@@ -375,6 +392,8 @@ async fn call_service(
         br_url,
     )
     .await;
+
+    println!("authorized {} !", authorized);
     /* } else { */
     // TODO
     /*     fetch_upstream_ref( */
@@ -408,10 +427,13 @@ async fn call_service(
     } else {
         None
     };
+    println!("refs are {:#?}", &refs);
 
     let filter_spec = parsed_url.view.clone();
+    println!("filter_spec is {}", &filter_spec);
     let serv = serv.clone();
     let fs = filter_spec.clone();
+    println!("fs is {}", &fs);
 
     let ns = temp_ns.clone();
 
@@ -424,9 +446,12 @@ async fn call_service(
         refs,
     )
     .await;
+    println!("filter done");
 
     let pathinfo = parsed_url.pathinfo.clone();
+    println!("pathinfo is {}", pathinfo);
     let repo_path = serv.repo_path.to_str().unwrap();
+    println!("repo_path is {}", repo_path);
 
     println!("Josh Proxy CALLING git-http backend");
     let mut cmd = Command::new("git");
@@ -443,12 +468,15 @@ async fn call_service(
     cmd.env("JOSH_USERNAME", username);
     cmd.env("JOSH_VIEWSTR", fs);
     cmd.env("PATH_INFO", pathinfo);
+    println!("cmd created");
 
     let cgires = hyper_cgi::do_cgi(req, cmd).await.0;
+    println!("Obtained result cgires {:#?}", cgires);
 
     // This is chained as a seperate future to make sure that
     // it is executed in all cases.
     std::mem::drop(temp_ns);
+    println!("This was chained as a separate future whatever that is");
 
     return cgires;
 }
@@ -489,6 +517,7 @@ async fn run_proxy() -> josh::JoshResult<i32> {
             let proxy_service = proxy_service.clone();
 
             call_service(proxy_service, _req).map(Ok::<_, hyper::http::Error>)
+            //println!("service was called and everything is good")
         });
 
         future::ok::<_, hyper::http::Error>(service)
